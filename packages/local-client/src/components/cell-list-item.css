@@ -1,0 +1,10 @@
+iframe#webpack-dev-server-client-overlay{display:none!important}
+.cell-list-item {
+  position: relative;
+}
+
+.action-bar-wrapper {
+  height: 30px;
+  width: 100%;
+  background-color: #37414b;
+}
