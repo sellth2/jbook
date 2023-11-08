@@ -1,26 +1,49 @@
 import express from 'express';
+import fs from 'fs/promises';
+import path from 'path';
 
-export const createCellsRouter = (filename: string, dir: string) =>  {
+interface LocalApiError {
+  code: string;
+}
+interface Cell {
+  id: string;
+  content: string;
+  type: 'text' | 'code';
+}
+export const createCellsRouter = (filename: string, dir: string) => {
+  const router = express.Router();
 
+  router.use(express.json());
+  const fullPath = path.join(dir, filename);
+  router.get('/cells', async (req, res) => {
+    const isLocalApiError = (err: any): err is LocalApiError => {
+      return typeof err.code === 'string';
+    };
+    try {
+      // Read the file
+      const result = await fs.readFile(fullPath, { encoding: 'utf-8' });
 
-const router = express.Router();
+      res.send(JSON.parse(result));
+    } catch (err) {
+      if (isLocalApiError(err)) {
+        if (err.code === 'ENOENT') {
+          await fs.writeFile(fullPath, '[]', 'utf-8');
+          res.send([]);
+        }
+      } else {
+        throw err;
+      }
+    }
+  });
 
-router.get('/cells', async(req, res) => {
-  //Make sure the cell storage file exists
-  // If it does not exist, add in a default list of cells
+  router.post('/cells', async (req, res) => {
+    // Take the list of cells from the request obj
+    //serialize them
+    const { cells }: { cells: Cell[] } = req.body; //id(id bir string) si olacak contenti(code) olacak type('code' or 'text') ı olacak
+    //Write the cells into the file
+    await fs.writeFile(fullPath, JSON.stringify(cells), 'utf-8');
 
-  // Read the file
-  // Parse a list of cells out of it
-  //Send list of cells back to browser
-});
-
-router.post('/cells', async (req,res) => {
-  //Make sure the file exists
-  //If not, create it
-
-  // Take the list of cells from the request obj
-  //serialize them
-  //Write the cells into the file
-});
-return router;
+    res.send({ status: 'ok' });
+  });
+  return router;
 };
